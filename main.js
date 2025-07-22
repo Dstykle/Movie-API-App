@@ -2,7 +2,7 @@ async function searchMovie() {
   const title = document.getElementById('movieTitle').value;
   const apiKey = 'YOUR_OMDB_API_KEY'; // Replace with your real key
 
-  const url = `http://www.omdbapi.com/?i=tt3896198&apikey=378ecac&t=${encodeURIComponent(title)}`;
+  const url = `https://www.omdbapi.com/?i=tt3896198&apikey=378ecac&t=${encodeURIComponent(title)}`;
 
   try {
     const response = await fetch(url);
