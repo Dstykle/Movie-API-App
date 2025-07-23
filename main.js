@@ -1,39 +1,63 @@
-async function searchMovie() {
-  const title = document.getElementById('movieTitle').value;
+async function searchMovies() {
+  const title = document.getElementById('movieTitle').value.trim();
+  const genreInput = document.getElementById('movieGenre').value.trim().toLowerCase();
+  const yearInput = document.getElementById('movieYear').value.trim();
+  const resultsDiv = document.getElementById('results');
 
-  const url = `https://www.omdbapi.com/?i=tt3896198&apikey=378ecac&t=${encodeURIComponent(title)}`;
-
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.Response === "True") {
-      document.getElementById('output').innerHTML = `
-        <h2 style="font-size:4vw">${data.Title}</h2>
-        <img src="${data.Poster}" alt="Movie Poster" style="max-width:200px;">
-        <p class="detail"><strong>Genre</strong>: ${data.Genre}\n\n<strong>Year</strong>: ${data.Year}\n\n<strong>Directors:</strong> ${data.Director}\n\n<strong>Actors:</strong> ${data.Actors}\n\n<strong>Summary:</strong> ${data.Plot}\n\n\n</p><p><strong>Ratings:</strong></p>`;
-          const ratingsContainer = document.getElementById('ratings-container');
-          ratingsContainer.innerHTML = "";
-    for (let i = 0; i < data.Ratings.length; i++) {
-      const para = document.createElement("p");
-      para.classList.add("size");
-      para.textContent = "By: " + data.Ratings[i]['Source'];
-
-      const para1 = document.createElement("p");
-      para1.classList.add("list");
-      para1.textContent = "Rating: " + data.Ratings[i]['Value'];
-
-      ratingsContainer.appendChild(para);
-      ratingsContainer.appendChild(para1);
-    }
-
-  } else {
-    outputDiv.innerText = `Error: ${data.Error}`;
+  if (!title) {
+    resultsDiv.innerHTML = "<p>Please enter a movie title.</p>";
+    return;
   }
 
-} catch (error) {
-  document.getElementById('output').innerText = 'Failed to fetch movie data.';
-  console.error(error);
-}
-}
+  const searchUrl = `https://www.omdbapi.com/?apikey=378ecac&s=${encodeURIComponent(title)}`;
 
+  try {
+    const response = await fetch(searchUrl);
+    const searchData = await response.json();
+
+    resultsDiv.innerHTML = ""; // Clear old results
+
+    if (searchData.Response === "True") {
+      const matchedMovies = [];
+
+      for (let item of searchData.Search) {
+        const fullDetailsUrl = `https://www.omdbapi.com/?apikey=378ecac&i=${item.imdbID}`;
+        const detailsResponse = await fetch(fullDetailsUrl);
+        const movie = await detailsResponse.json();
+
+        const genreMatch = genreInput ? movie.Genre.toLowerCase().includes(genreInput) : true;
+        const yearMatch = yearInput ? movie.Year === yearInput : true;
+
+        if (genreMatch && yearMatch) {
+          matchedMovies.push(movie);
+        }
+      }
+
+      if (matchedMovies.length === 0) {
+        resultsDiv.innerHTML = "<p>No movies found with that genre/year combination.</p>";
+        return;
+      }
+
+      // Display all matched movies
+      for (let movie of matchedMovies) {
+        const movieDiv = document.createElement('div');
+        movieDiv.innerHTML = `
+          <h3>${movie.Title} (${movie.Year})</h3>
+          <img src="${movie.Poster !== "N/A" ? movie.Poster : ""}" alt="Poster" style="max-width:150px;"><br>
+          <strong>Genre:</strong> ${movie.Genre}<br>
+          <strong>Director:</strong> ${movie.Director}<br>
+          <strong>Plot:</strong> ${movie.Plot}<br><br>
+        `;
+        movieDiv.style.marginBottom = "30px";
+        resultsDiv.appendChild(movieDiv);
+      }
+
+    } else {
+      resultsDiv.innerHTML = `<p>Error: ${searchData.Error}</p>`;
+    }
+
+  } catch (error) {
+    resultsDiv.innerHTML = "<p>Failed to fetch movie data.</p>";
+    console.error(error);
+  }
+}
